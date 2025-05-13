@@ -12,31 +12,32 @@ def read_host_data(csv_file):
     try:
         with open(csv_file, mode='r', encoding='utf-8-sig', newline='') as file:
             reader = csv.DictReader(file)
-            rows = [row for row in reader if row.get("host")]
+            rows = [row for row in reader if row.get("devicename")]
+            print (rows)
             print(f"✅ Successfully read {len(rows)} rows from {csv_file}")
             return rows
     except Exception as e:
         print(f"❌ Error reading CSV: {e}")
         return []
 
-def get_device_id_by_hostname(hostname):
+def get_device_id_by_hostname(DeviceName):
     try:
         # Query for matching device IDs
         query_result = falcon.query_devices_by_filter(
-            filter=f"hostname:'{hostname}*'"
+            filter=f"hostname:'{DeviceName}*'"
         )
 
         resources = query_result.get("body", {}).get("resources", [])
 
         if not resources:
-            print(f"⚠️ No device found for hostname: {hostname}")
+            print(f"⚠️ No device found for hostname: {DeviceName}")
             return None
 
         # Return first matched device ID
         return resources[0]
 
     except Exception as e:
-        print(f"❌ Error querying device ID for {hostname}: {e}")
+        print(f"❌ Error querying device ID for {DeviceName}: {e}")
         return None
 
 def get_os(device_id):
@@ -57,8 +58,8 @@ def get_os(device_id):
         print(f"❌ Error fetching OS for device ID {device_id}: {e}")
     return "unknown"
 
-def build_tag(dept, location, os_type):
-    return f"{dept}_{location}_{os_type}_endpoint".lower()
+def build_tag(department, os_type):
+    return f"{department}_{os_type}_endpoint".lower()
 
 def tag_device(device_id, tag):
     try:
@@ -79,23 +80,24 @@ if __name__ == "__main__":
 
     for row in host_rows:
         try:
-            hostname = row["host"].strip()
+            devicename = row["devicename"].strip()
+            user = row.get("user", "").strip()
             dept = row.get("department", "").strip()
-            location = row.get("location", "").strip()
+            print (devicename)
 
-            if not hostname or not dept or not location:
+            if not devicename or not user or not dept:
                 print(f"⚠️ Missing fields for row: {row}")
                 continue
             
             
-            print(f"\n🔍 Processing host: {hostname}")
-            device_id = get_device_id_by_hostname(hostname)
+            print(f"\n🔍 Processing host: {devicename}")
+            device_id = get_device_id_by_hostname(devicename)
 
             if not device_id:
                 continue
 
             os_type = get_os(device_id)
-            tag = build_tag(dept, location, os_type)
+            tag = build_tag(dept, os_type)
             print(f"🏷️  Applying tag: {tag}")
 
             if tag_device(device_id, tag):
