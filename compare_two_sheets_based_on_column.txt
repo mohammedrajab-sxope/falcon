@@ -1,0 +1,1 @@
+=IF(COUNTIF(Sheet1!A:A, A2) > 0, "Exists", "Does Not Exist")
